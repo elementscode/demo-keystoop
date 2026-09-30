@@ -1,0 +1,82 @@
+import "./style.css";
+import { LiveView } from "@elements/app";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { Layout } from "#app/shared/templates/layout";
+import { ListingTile, Favorites } from "#app/shared/templates/listing-tile";
+import { SavedSearch, deleteSavedSearch } from "#app/shared/services/favorites";
+import { ListingCard, filtersFromCriteria, filtersToQuery, searchResults } from "#app/shared/services/catalog";
+
+interface Searches {
+  items: SavedSearch[];
+}
+
+function favoriteHomes(listings: LiveView<ListingCard>, favs: Favorites): ListingCard[] {
+  return listings
+    .filter((l) => favs.ids.includes(l.id))
+    .sort((a, b) => +new Date(b.listedAt) - +new Date(a.listedAt));
+}
+
+function onDelete(searches: Searches, s: SavedSearch) {
+  searches.items = deleteSavedSearch(s.id);
+}
+
+<html lang="en" class="page-saved" (
+  listings: LiveView<ListingCard>,
+  favoriteIds: string[],
+  searches: SavedSearch[],
+  private favs: Favorites = { ids: favoriteIds },
+  private saved: Searches = { items: searches },
+)>
+  <head>
+    <title>Saved · Keystoop Realty</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <Layout active="saved">
+      <div class="page-shell saved-main stack is-2xl">
+        <div class="stack is-xs">
+          <p class="eyebrow">Your account</p>
+          <h1 class="saved-title">Saved</h1>
+        </div>
+
+        <section class="stack is-lg">
+          <h2 class="saved-section-title">Saved searches</h2>
+          <p class="hint">We email you when a new listing matches one of these.</p>
+
+          <div e:if={saved.items.length > 0} class="stack is-sm">
+            <div e:for={s of saved.items} class="row saved-search">
+              <div class="stack is-xs">
+                <strong>{s.name}</strong>
+                <span class="saved-search-count">{searchResults(listings, filtersFromCriteria(s)).length} homes for sale now</span>
+              </div>
+              <div class="row is-sm">
+                <a class="button is-sm" href={"/" + filtersToQuery(filtersFromCriteria(s))}>See homes</a>
+                <button class="is-sm is-ghost" aria-label={`Delete saved search ${s.name}`} onclick={() => onDelete(saved, s)}>Delete</button>
+              </div>
+            </div>
+          </div>
+
+          <div e:else class="saved-empty stack is-sm">
+            <h3>No saved searches</h3>
+            <p class="hint">Set your filters on the search page and choose Save search.</p>
+            <div><a class="button" href="/">Search homes</a></div>
+          </div>
+        </section>
+
+        <section class="stack is-lg">
+          <h2 class="saved-section-title">Saved homes</h2>
+
+          <div e:if={favoriteHomes(listings, favs).length > 0} class="saved-grid">
+            <ListingTile e:for={l of favoriteHomes(listings, favs)} listing={l} {favs} />
+          </div>
+
+          <div e:else class="saved-empty stack is-sm">
+            <h3>No saved homes yet</h3>
+            <p class="hint">Tap the heart on any listing to keep it here. Status changes show up live.</p>
+            <div><a class="button" href="/">Browse homes</a></div>
+          </div>
+        </section>
+      </div>
+    </Layout>
+  </body>
+</html>

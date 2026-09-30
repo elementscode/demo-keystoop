@@ -1,0 +1,127 @@
+@import "#app/shared/styles/page.css";
+@import "#app/shared/styles/desk.css";
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.editor-layout.is-new {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 48rem;
+}
+
+.editor-form .field {
+  margin: 0;
+}
+
+.editor-actions {
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.editor-saved {
+  font-size: var(--text-sm);
+  color: var(--success);
+}
+
+.editor-photos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.editor-photo {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-muted);
+}
+
+.editor-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.editor-photo-tools {
+  position: absolute;
+  inset: auto 0 0 0;
+  justify-content: space-between;
+  padding: var(--space-1-5);
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.55));
+}
+
+.editor-photo-tools button {
+  height: 1.75rem;
+  padding-inline: var(--space-2);
+  border: none;
+  background: rgb(255 255 255 / 0.92);
+  color: var(--neutral-900);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+
+.editor-photo .pill {
+  position: absolute;
+  top: var(--space-1-5);
+  left: var(--space-1-5);
+}
+
+.editor-oh {
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.editor-oh-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.editor-oh-form .field:first-child {
+  grid-column: 1 / -1;
+}
+
+.editor-oh-form .field {
+  margin: 0;
+}
+
+.editor-oh-form button {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 60rem) {
+  .editor-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.page-listing-editor input[type="file"] {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
+}
+
+.page-listing-editor input[type="file"]::file-selector-button {
+  margin-right: var(--space-3);
+  padding: var(--space-1-5) var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}

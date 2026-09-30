@@ -1,0 +1,12 @@
+import "./style.css";
+
+<DeskNav (active: string, unread: number)>
+  <nav class="row desk-tabs" aria-label="Agent desk">
+    <a href="/agent" class={[active === "listings" && "is-active"]}>My listings</a>
+    <a href="/agent/inquiries" class={[active === "inquiries" && "is-active"]}>
+      <span>Inquiries</span>
+      <span e:if={unread > 0} class="count-badge">{unread}</span>
+    </a>
+    <a href="/agent/listings/new" class={[active === "new" && "is-active"]}>New listing</a>
+  </nav>
+</DeskNav>

@@ -1,0 +1,304 @@
+import "./style.css";
+import { File, ValidationError, redirect } from "@elements/app";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { Layout } from "#app/shared/templates/layout";
+import { DeskNav } from "#app/shared/templates/desk-nav";
+import { photoUrl } from "#app/shared/services/assets";
+import {
+  ListingForm,
+  EditorPhoto,
+  EditorOpenHouse,
+  createListing,
+  updateListing,
+  addPhotos,
+  removePhoto,
+  makeCover,
+  addOpenHouse,
+  removeOpenHouse,
+} from "#app/shared/services/agent";
+import { NEIGHBORHOODS, PROPERTY_TYPES, STATUSES, shortDayLabel, timeLabel } from "#app/shared/services/catalog";
+
+interface Editor {
+  form: ListingForm;
+  errors: Partial<Record<keyof ListingForm, string[]>>;
+  error: string;
+  busy: boolean;
+  saved: boolean;
+}
+
+interface PhotoPanel {
+  photos: EditorPhoto[];
+  upload: File[];
+  error: string;
+  busy: boolean;
+}
+
+interface OpenHousePanel {
+  items: EditorOpenHouse[];
+  day: string;
+  start: string;
+  end: string;
+  error: string;
+}
+
+function onSave(editor: Editor, listingId: string) {
+  editor.busy = true;
+  editor.errors = {};
+  editor.error = "";
+  editor.saved = false;
+
+  try {
+    if (listingId) {
+      updateListing(listingId, editor.form);
+      editor.saved = true;
+      editor.busy = false;
+    } else {
+      let created = createListing(editor.form);
+      redirect(`/agent/listings/${created.id}?created=1`);
+    }
+  } catch (err: any) {
+    if (err instanceof ValidationError && err.errors) {
+      editor.errors = err.errors;
+    } else {
+      editor.error = err.message;
+    }
+
+    editor.busy = false;
+  }
+}
+
+function onUpload(panel: PhotoPanel, listingId: string) {
+  if (panel.upload.length === 0) {
+    return;
+  }
+
+  panel.busy = true;
+  panel.error = "";
+
+  try {
+    panel.photos = addPhotos(listingId, panel.upload);
+    panel.upload = [];
+  } catch (err: any) {
+    panel.error = err instanceof ValidationError && err.errors ? (err.errors as any).photos?.[0] ?? err.message : err.message;
+  }
+
+  panel.busy = false;
+}
+
+function onRemovePhoto(panel: PhotoPanel, listingId: string, photo: EditorPhoto) {
+  panel.photos = removePhoto(listingId, photo.id);
+}
+
+function onCover(panel: PhotoPanel, listingId: string, photo: EditorPhoto) {
+  panel.photos = makeCover(listingId, photo.id);
+}
+
+function onAddOpenHouse(panel: OpenHousePanel, listingId: string) {
+  panel.error = "";
+
+  try {
+    panel.items = addOpenHouse(listingId, panel.day, panel.start, panel.end);
+    panel.day = "";
+  } catch (err: any) {
+    panel.error = err.message;
+  }
+}
+
+function onRemoveOpenHouse(panel: OpenHousePanel, listingId: string, oh: EditorOpenHouse) {
+  panel.items = removeOpenHouse(listingId, oh.id);
+}
+
+function fieldClass(editor: Editor, key: keyof ListingForm) {
+  return [editor.errors[key] && "is-error"];
+}
+
+<html lang="en" class="page-listing-editor" (
+  listingId: string,
+  initial: ListingForm,
+  photos: EditorPhoto[],
+  openHouses: EditorOpenHouse[],
+  unread: number,
+  created: boolean,
+  private editor: Editor = { form: initial, errors: {}, error: "", busy: false, saved: false },
+  private panel: PhotoPanel = { photos, upload: [], error: "", busy: false },
+  private oh: OpenHousePanel = { items: openHouses, day: "", start: "13:00", end: "15:00", error: "" },
+)>
+  <head>
+    <title>{listingId ? `Edit ${initial.address}` : "New listing"} · Keystoop Realty</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <Layout active="agent">
+      <div class="page-shell desk-main stack is-xl">
+        <div class="row desk-head">
+          <div class="stack is-xs">
+            <p class="eyebrow">Agent desk</p>
+            <h1 class="desk-title">{listingId ? editor.form.address || "Edit listing" : "New listing"}</h1>
+          </div>
+          <a e:if={listingId} class="button" href={`/listings/${listingId}`}>View listing</a>
+        </div>
+
+        <DeskNav active={listingId ? "" : "new"} {unread} />
+
+        <div e:if={created} class="callout is-success">
+          <p class="callout-title">Listing published</p>
+          <p>It is in search results now. Add photos and open houses here.</p>
+        </div>
+
+        <div class={["editor-layout", !listingId && "is-new"]}>
+          <form class="is-grid editor-form" onsubmit={() => onSave(editor, listingId)}>
+            <p e:if={editor.error} class="error field is-full" role="alert">{editor.error}</p>
+
+            <div class="field is-full">
+              <label for="e-address">Street address</label>
+              <input id="e-address" value={editor.form.address} class={fieldClass(editor, "address")} placeholder="14 Cobble Row">
+              <p e:if={editor.errors.address} class="error">{editor.errors.address![0]}</p>
+            </div>
+
+            <div class="field">
+              <label for="e-hood">Neighborhood</label>
+              <select id="e-hood" value={editor.form.neighborhood} class={fieldClass(editor, "neighborhood")}>
+                <option value="">Choose one</option>
+                <option e:for={n of NEIGHBORHOODS} value={n}>{n}</option>
+              </select>
+              <p e:if={editor.errors.neighborhood} class="error">{editor.errors.neighborhood![0]}</p>
+            </div>
+
+            <div class="field">
+              <label for="e-type">Home type</label>
+              <select id="e-type" value={editor.form.propertyType} class={fieldClass(editor, "propertyType")}>
+                <option e:for={t of PROPERTY_TYPES} value={t.value}>{t.label}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="e-price">Asking price ($)</label>
+              <input id="e-price" inputmode="numeric" value={editor.form.price} class={fieldClass(editor, "price")} placeholder="650000">
+              <p e:if={editor.errors.price} class="error">{editor.errors.price![0]}</p>
+            </div>
+
+            <div class="field">
+              <label for="e-status">Status</label>
+              <select id="e-status" value={editor.form.status}>
+                <option e:for={s of STATUSES} value={s.value}>{s.label}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="e-beds">Bedrooms</label>
+              <input id="e-beds" inputmode="numeric" value={editor.form.beds} class={fieldClass(editor, "beds")}>
+              <p e:if={editor.errors.beds} class="error">{editor.errors.beds![0]}</p>
+            </div>
+
+            <div class="field">
+              <label for="e-baths">Bathrooms</label>
+              <input id="e-baths" inputmode="decimal" value={editor.form.baths} class={fieldClass(editor, "baths")} placeholder="2.5">
+              <p e:if={editor.errors.baths} class="error">{editor.errors.baths![0]}</p>
+            </div>
+
+            <div class="field">
+              <label for="e-sqft">Square feet</label>
+              <input id="e-sqft" inputmode="numeric" value={editor.form.sqft} class={fieldClass(editor, "sqft")}>
+              <p e:if={editor.errors.sqft} class="error">{editor.errors.sqft![0]}</p>
+            </div>
+
+            <div class="field">
+              <label for="e-lot">Lot (sq ft) <span class="hint">optional</span></label>
+              <input id="e-lot" inputmode="numeric" value={editor.form.lotSqft} class={fieldClass(editor, "lotSqft")}>
+              <p e:if={editor.errors.lotSqft} class="error">{editor.errors.lotSqft![0]}</p>
+            </div>
+
+            <div class="field">
+              <label for="e-year">Year built <span class="hint">optional</span></label>
+              <input id="e-year" inputmode="numeric" value={editor.form.yearBuilt} class={fieldClass(editor, "yearBuilt")}>
+              <p e:if={editor.errors.yearBuilt} class="error">{editor.errors.yearBuilt![0]}</p>
+            </div>
+
+            <div class="field is-full">
+              <label for="e-headline">Headline</label>
+              <input id="e-headline" value={editor.form.headline} maxlength="90" placeholder="Brick row house on Old Town's quietest block">
+            </div>
+
+            <div class="field is-full">
+              <label for="e-description">Description</label>
+              <textarea id="e-description" rows="6" value={editor.form.description}></textarea>
+            </div>
+
+            <div e:if={!listingId} class="field is-full">
+              <label for="e-photos">Photos</label>
+              <input id="e-photos" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" value={editor.form.photos}>
+              <p e:if={editor.errors.photos} class="error">{editor.errors.photos![0]}</p>
+              <p e:else class="hint">The first photo is the cover. Up to 8 MB each.</p>
+            </div>
+
+            <div class="row field is-full editor-actions">
+              <span e:if={editor.saved} class="editor-saved" role="status">Saved. Search results are updated.</span>
+              <a class="button is-ghost" href="/agent">Cancel</a>
+              <button type="submit" class="is-primary" disabled={editor.busy}>
+                {editor.busy ? "Saving…" : listingId ? "Save changes" : "Publish listing"}
+              </button>
+            </div>
+          </form>
+
+          <aside e:if={listingId} class="stack is-lg">
+            <div class="card">
+              <div class="card-head">
+                <h2>Photos</h2>
+              </div>
+              <div class="card-body stack">
+                <div e:if={panel.photos.length > 0} class="editor-photos">
+                  <div e:for={p of panel.photos} class="editor-photo">
+                    <img src={photoUrl(p)} alt="" width="160" height="107" loading="lazy">
+                    <span e:if={p.id === panel.photos[0].id} class="pill is-accent">Cover</span>
+                    <div class="row editor-photo-tools">
+                      <button type="button" e:if={p.id !== panel.photos[0].id} onclick={() => onCover(panel, listingId, p)}>Make cover</button>
+                      <span e:else></span>
+                      <button type="button" aria-label="Remove photo" onclick={() => onRemovePhoto(panel, listingId, p)}>Remove</button>
+                    </div>
+                  </div>
+                </div>
+                <p e:else class="hint">No photos yet. Listings with photos get far more inquiries.</p>
+
+                <form class="stack is-sm" onsubmit={() => onUpload(panel, listingId)}>
+                  <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Add photos" value={panel.upload}>
+                  <p e:if={panel.error} class="error">{panel.error}</p>
+                  <button type="submit" disabled={panel.busy || panel.upload.length === 0}>{panel.busy ? "Uploading…" : "Upload photos"}</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Open houses</h2>
+              </div>
+              <div class="card-body stack">
+                <div e:for={item of oh.items} class="row editor-oh">
+                  <span>{shortDayLabel(item.startsAt)}, {timeLabel(item.startsAt)} to {timeLabel(item.endsAt)}</span>
+                  <button type="button" class="is-sm is-ghost" onclick={() => onRemoveOpenHouse(oh, listingId, item)}>Remove</button>
+                </div>
+                <p e:if={oh.items.length === 0} class="hint">None scheduled.</p>
+
+                <form class="editor-oh-form" onsubmit={() => onAddOpenHouse(oh, listingId)}>
+                  <div class="field">
+                    <label for="oh-day">Date</label>
+                    <input id="oh-day" type="date" value={oh.day} required>
+                  </div>
+                  <div class="field">
+                    <label for="oh-start">Starts</label>
+                    <input id="oh-start" type="time" value={oh.start} required>
+                  </div>
+                  <div class="field">
+                    <label for="oh-end">Ends</label>
+                    <input id="oh-end" type="time" value={oh.end} required>
+                  </div>
+                  <p e:if={oh.error} class="error">{oh.error}</p>
+                  <button type="submit">Add open house</button>
+                </form>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </Layout>
+  </body>
+</html>

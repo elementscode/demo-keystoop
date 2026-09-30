@@ -1,0 +1,197 @@
+import "./style.css";
+import { LiveView, session, redirect } from "@elements/app";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { Layout } from "#app/shared/templates/layout";
+import { ListingTile, Favorites } from "#app/shared/templates/listing-tile";
+import { saveSearch } from "#app/shared/services/favorites";
+import {
+  ListingCard,
+  Filters,
+  NEIGHBORHOODS,
+  PROPERTY_TYPES,
+  PRICE_STEPS,
+  emptyFilters,
+  filtersToQuery,
+  searchResults,
+  shortMoney,
+} from "#app/shared/services/catalog";
+
+interface SaveState {
+  status: "idle" | "saving" | "saved";
+  error: string;
+}
+
+function onFiltersChange(filters: Filters, save: SaveState) {
+  history.replaceState(null, "", "/" + filtersToQuery(filters));
+  save.status = "idle";
+  save.error = "";
+}
+
+function onShow(filters: Filters, save: SaveState, show: "sale" | "sold") {
+  filters.show = show;
+  onFiltersChange(filters, save);
+}
+
+function onReset(filters: Filters, save: SaveState) {
+  Object.assign(filters, emptyFilters());
+  onFiltersChange(filters, save);
+}
+
+function onSaveSearch(filters: Filters, save: SaveState) {
+  if (!session.isLoggedIn()) {
+    redirect(`/signin?next=${encodeURIComponent("/" + filtersToQuery(filters))}`);
+    return;
+  }
+
+  save.status = "saving";
+
+  try {
+    saveSearch(filters);
+    save.status = "saved";
+  } catch (err: any) {
+    save.status = "idle";
+    save.error = err.message;
+  }
+}
+
+function heading(count: number, filters: Filters): string {
+  let noun = count === 1 ? "home" : "homes";
+
+  return filters.show === "sold" ? `${count} recently sold` : `${count} ${noun} for sale`;
+}
+
+<html lang="en" class="page-search" (
+  listings: LiveView<ListingCard>,
+  initial: Filters,
+  favoriteIds: string[],
+  private filters: Filters = { ...initial },
+  private favs: Favorites = { ids: favoriteIds },
+  private save: SaveState = { status: "idle" as SaveState["status"], error: "" },
+)>
+  <head>
+    <title>Keystoop Realty · Homes for sale</title>
+    <meta name="description" content="Search homes for sale from Keystoop Realty, a local brokerage.">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <Layout active="search">
+      <section class="search-hero">
+        <div class="page-shell stack is-lg">
+          <div class="stack is-sm">
+            <p class="eyebrow">Keystoop Realty</p>
+            <h1>Find your front steps.</h1>
+            <p class="lede">Homes for sale in eight neighborhoods, listed by the agents who live in them.</p>
+          </div>
+
+          <form class="search-filters" onchange={() => onFiltersChange(filters, save)}>
+            <div class="field">
+              <label for="f-min">Min price</label>
+              <select id="f-min" value={filters.minPrice}>
+                <option value="">No min</option>
+                <option e:for={p of PRICE_STEPS} value={String(p)}>{shortMoney(p)}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="f-max">Max price</label>
+              <select id="f-max" value={filters.maxPrice}>
+                <option value="">No max</option>
+                <option e:for={p of PRICE_STEPS} value={String(p)}>{shortMoney(p)}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="f-beds">Beds</label>
+              <select id="f-beds" value={filters.beds}>
+                <option value="">Any</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+                <option value="5">5+</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="f-baths">Baths</label>
+              <select id="f-baths" value={filters.baths}>
+                <option value="">Any</option>
+                <option value="1">1+</option>
+                <option value="1.5">1.5+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="f-type">Home type</label>
+              <select id="f-type" value={filters.type}>
+                <option value="">All types</option>
+                <option e:for={t of PROPERTY_TYPES} value={t.value}>{t.label}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="f-hood">Neighborhood</label>
+              <select id="f-hood" value={filters.hood}>
+                <option value="">All neighborhoods</option>
+                <option e:for={n of NEIGHBORHOODS} value={n}>{n}</option>
+              </select>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="page-shell">
+        <div class="row search-bar">
+          <div class="cluster is-md">
+            <h2 class="search-count">{heading(searchResults(listings, filters).length, filters)}</h2>
+            <span class="pill is-success search-live" title="New listings and status changes appear here as agents make them">
+              <span class="pill-dot"></span>
+              Live
+            </span>
+          </div>
+
+          <div class="cluster search-tools">
+            <div class="row search-show" role="group" aria-label="Show">
+              <button type="button"
+                      class={["is-sm", filters.show === "sale" && "is-active"]}
+                      aria-pressed={filters.show === "sale"}
+                      onclick={() => onShow(filters, save, "sale")}>For sale</button>
+              <button type="button"
+                      class={["is-sm", filters.show === "sold" && "is-active"]}
+                      aria-pressed={filters.show === "sold"}
+                      onclick={() => onShow(filters, save, "sold")}>Sold</button>
+            </div>
+
+            <select class="is-sm" aria-label="Sort" value={filters.sort} onchange={() => onFiltersChange(filters, save)}>
+              <option value="newest">Newest</option>
+              <option value="price-asc">Price, low to high</option>
+              <option value="price-desc">Price, high to low</option>
+            </select>
+
+            <span e:if={save.status === "saved"} class="search-saved" role="status">Saved. We'll email you new matches.</span>
+            <button e:else
+                    type="button"
+                    class="is-sm is-primary"
+                    disabled={save.status === "saving"}
+                    onclick={() => onSaveSearch(filters, save)}>Save search</button>
+          </div>
+        </div>
+
+        <p e:if={save.error} class="error" role="alert">{save.error}</p>
+
+        <div e:if={searchResults(listings, filters).length > 0} class="search-grid">
+          <ListingTile e:for={l of searchResults(listings, filters)} listing={l} {favs} />
+        </div>
+
+        <div e:else class="search-empty stack is-sm center">
+          <h3>No homes match those filters.</h3>
+          <p class="hint">Widen the price range or try another neighborhood.</p>
+          <button type="button" onclick={() => onReset(filters, save)}>Clear filters</button>
+        </div>
+      </section>
+    </Layout>
+  </body>
+</html>

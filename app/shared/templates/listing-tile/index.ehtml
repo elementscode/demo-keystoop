@@ -1,0 +1,88 @@
+import "./style.css";
+import { LifecycleEvent, session, redirect } from "@elements/app";
+import { photoUrl } from "#app/shared/services/assets";
+import { toggleFavorite } from "#app/shared/services/favorites";
+import {
+  ListingCard,
+  money,
+  bedsLabel,
+  bathsLabel,
+  sqftLabel,
+  isNew,
+  shortDayLabel,
+  timeLabel,
+} from "#app/shared/services/catalog";
+
+export interface Favorites {
+  ids: string[];
+}
+
+function onFavorite(favs: Favorites, listing: ListingCard) {
+  if (!session.isLoggedIn()) {
+    redirect(`/signin?next=${encodeURIComponent(location.pathname + location.search)}`);
+    return;
+  }
+
+  favs.ids = toggleFavorite(listing.id);
+}
+
+/** A row that arrives after the page has settled is new to the viewer, so it says so. */
+function onArrive(e: LifecycleEvent) {
+  if (performance.now() > 2500) {
+    e.target.animate(
+      [
+        { opacity: 0, transform: "translateY(12px) scale(0.98)", boxShadow: "0 0 0 3px var(--accent)" },
+        { opacity: 1, transform: "none", boxShadow: "0 0 0 3px var(--accent)", offset: 0.4 },
+        { opacity: 1, transform: "none", boxShadow: "0 0 0 0 transparent" },
+      ],
+      { duration: 1600, easing: "ease-out" },
+    );
+  }
+}
+
+<ListingTile (listing: ListingCard, favs: Favorites)>
+  <article class={["tile", `is-${listing.status}`]} oninsert={(e) => onArrive(e)}>
+    <button class={["tile-fav", favs.ids.includes(listing.id) && "is-active"]}
+            aria-label={favs.ids.includes(listing.id) ? "Remove from saved homes" : "Save this home"}
+            aria-pressed={favs.ids.includes(listing.id)}
+            onclick={() => onFavorite(favs, listing)}>
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2Z"
+              fill={favs.ids.includes(listing.id) ? "currentColor" : "none"}
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <a class="tile-link" href={`/listings/${listing.id}`}>
+      <div class="tile-photo">
+        <img e:if={listing.coverId}
+             src={photoUrl({ id: listing.coverId!, asset: listing.coverAsset, hash: listing.coverHash ?? "" })}
+             alt={listing.address}
+             loading="lazy"
+             width="600"
+             height="400">
+
+        <div class="cluster tile-badges">
+          <span e:if={isNew(listing)} class="pill is-accent">New</span>
+          <span e:if={listing.status === "pending"} class="pill is-warning"><span class="pill-dot"></span>Pending</span>
+          <span e:if={listing.status === "sold"} class="pill is-danger"><span class="pill-dot"></span>Sold</span>
+        </div>
+      </div>
+
+      <div class="stack tile-body">
+        <span class="tile-price">{money(listing.price)}</span>
+        <div class="cluster tile-facts">
+          <span>{bedsLabel(listing.beds)}</span>
+          <span>{bathsLabel(listing.baths)}</span>
+          <span>{sqftLabel(listing.sqft)}</span>
+        </div>
+        <span class="tile-address">{listing.address} · {listing.neighborhood}</span>
+        <span e:if={listing.nextOpenHouse && listing.status === "active"} class="tile-open">
+          Open house {shortDayLabel(listing.nextOpenHouse!)}, {timeLabel(listing.nextOpenHouse!)}
+        </span>
+      </div>
+    </a>
+  </article>
+</ListingTile>

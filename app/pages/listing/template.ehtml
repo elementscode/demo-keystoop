@@ -1,0 +1,406 @@
+import "./style.css";
+import { session, redirect, ValidationError } from "@elements/app";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { Layout } from "#app/shared/templates/layout";
+import { photoUrl, agentPhotoUrl } from "#app/shared/services/assets";
+import { toggleFavorite } from "#app/shared/services/favorites";
+import { sendInquiry, InquiryForm, InquiryKind } from "#app/shared/services/inquiries";
+import {
+  ListingStatus,
+  PropertyType,
+  money,
+  bathsLabel,
+  typeLabel,
+  dayLabel,
+  dateLabel,
+  timeLabel,
+  isNew,
+  TIME_ZONE,
+} from "#app/shared/services/catalog";
+
+export interface ListingDetail {
+  id: string;
+  status: ListingStatus;
+  address: string;
+  neighborhood: string;
+  propertyType: PropertyType;
+  price: number;
+  beds: number;
+  baths: number;
+  sqft: number;
+  lotSqft: number | null;
+  yearBuilt: number | null;
+  headline: string;
+  description: string;
+  listedAt: Date;
+  soldAt: Date | null;
+  agentId: string;
+}
+
+export interface Photo {
+  id: string;
+  asset: string | null;
+  hash: string;
+}
+
+export interface OpenHouse {
+  id: string;
+  startsAt: Date;
+  endsAt: Date;
+}
+
+export interface Agent {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  title: string | null;
+  bio: string | null;
+  photo: string | null;
+}
+
+interface Gallery {
+  index: number;
+}
+
+interface Inquiry {
+  form: InquiryForm;
+  errors: Partial<Record<keyof InquiryForm, string[]>>;
+  error: string;
+  sending: boolean;
+  sentTo: string;
+}
+
+interface Fav {
+  on: boolean;
+}
+
+function step(gallery: Gallery, count: number, by: number) {
+  gallery.index = (gallery.index + by + count) % count;
+}
+
+function monthShort(d: Date): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, month: "short" }).format(new Date(d));
+}
+
+function dayOfMonth(d: Date): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, day: "numeric" }).format(new Date(d));
+}
+
+function newInquiry(listingId: string, kind: InquiryKind): InquiryForm {
+  return {
+    listingId,
+    kind,
+    name: session.get("userName") ?? "",
+    email: session.get("email") ?? "",
+    phone: "",
+    message: "",
+    preferredTime: "",
+  };
+}
+
+function onKind(inquiry: Inquiry, kind: InquiryKind) {
+  inquiry.form.kind = kind;
+  inquiry.errors = {};
+  inquiry.error = "";
+}
+
+function onAttend(inquiry: Inquiry, oh: OpenHouse) {
+  onKind(inquiry, "showing");
+  inquiry.form.preferredTime = `Open house ${dayLabel(oh.startsAt)}, ${timeLabel(oh.startsAt)}`;
+  document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function onSend(inquiry: Inquiry) {
+  inquiry.sending = true;
+  inquiry.errors = {};
+  inquiry.error = "";
+
+  try {
+    let result = sendInquiry(inquiry.form);
+    inquiry.sentTo = result.agentName;
+  } catch (err: any) {
+    if (err instanceof ValidationError && err.errors) {
+      inquiry.errors = err.errors;
+    } else {
+      inquiry.error = err.message;
+    }
+  }
+
+  inquiry.sending = false;
+}
+
+function onAnother(inquiry: Inquiry) {
+  inquiry.form = newInquiry(inquiry.form.listingId, inquiry.form.kind);
+  inquiry.sentTo = "";
+}
+
+function onFavorite(fav: Fav, listingId: string) {
+  if (!session.isLoggedIn()) {
+    redirect(`/signin?next=${encodeURIComponent(location.pathname)}`);
+    return;
+  }
+
+  fav.on = toggleFavorite(listingId).includes(listingId);
+}
+
+<html lang="en" class="page-listing" (
+  listing: ListingDetail,
+  photos: Photo[],
+  openHouses: OpenHouse[],
+  agent: Agent,
+  favorite: boolean,
+  private gallery: Gallery = { index: 0 },
+  private fav: Fav = { on: favorite },
+  private inquiry: Inquiry = {
+    form: newInquiry(listing.id, "question" as InquiryKind),
+    errors: {},
+    error: "",
+    sending: false,
+    sentTo: "",
+  },
+)>
+  <head>
+    <title>{listing.address} · {money(listing.price)} · Keystoop Realty</title>
+    <meta name="description" content={listing.headline}>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <Layout>
+      <div class="page-shell">
+        <div class="row listing-back">
+          <a href="/">← All homes</a>
+          <a e:if={session.get("userId") === listing.agentId}
+             class="button is-sm"
+             href={`/agent/listings/${listing.id}`}>Edit listing</a>
+        </div>
+
+        <div class="stack gallery">
+          <div class="gallery-main">
+            <img e:if={photos.length > 0}
+                 src={photoUrl(photos[gallery.index])}
+                 alt={`${listing.address}, photo ${gallery.index + 1} of ${photos.length}`}
+                 width="1200"
+                 height="800">
+
+            <div class="cluster is-sm gallery-badges">
+              <span e:if={isNew(listing)} class="pill is-accent">New</span>
+              <span e:if={listing.status === "pending"} class="pill is-warning"><span class="pill-dot"></span>Pending</span>
+              <span e:if={listing.status === "sold"} class="pill is-danger"><span class="pill-dot"></span>Sold</span>
+            </div>
+
+            <button e:if={photos.length > 1}
+                    class="gallery-nav is-prev"
+                    aria-label="Previous photo"
+                    onclick={() => step(gallery, photos.length, -1)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button e:if={photos.length > 1}
+                    class="gallery-nav is-next"
+                    aria-label="Next photo"
+                    onclick={() => step(gallery, photos.length, 1)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+
+            <span e:if={photos.length > 0} class="gallery-count">{gallery.index + 1} / {photos.length}</span>
+          </div>
+
+          <div e:if={photos.length > 1} class="gallery-thumbs">
+            <button e:for={[i, p] of photos.entries()}
+                    class={[i === gallery.index && "is-active"]}
+                    aria-label={`Show photo ${i + 1}`}
+                    onclick={() => gallery.index = i}>
+              <img src={photoUrl(p)} alt="" loading="lazy" width="112" height="76">
+            </button>
+          </div>
+        </div>
+
+        <div class="listing-layout">
+          <article class="stack is-xl">
+            <div class="stack is-sm">
+              <p class="eyebrow">{listing.neighborhood} · {typeLabel(listing.propertyType)}</p>
+              <p class="listing-price">{money(listing.price)}</p>
+              <h1 class="listing-address">{listing.address}</h1>
+            </div>
+
+            <div class="listing-facts">
+              <div class="stack listing-fact">
+                <strong>{listing.beds}</strong>
+                <span>{listing.beds === 1 ? "Bedroom" : "Bedrooms"}</span>
+              </div>
+              <div class="stack listing-fact">
+                <strong>{+listing.baths.toFixed(1)}</strong>
+                <span>{listing.baths === 1 ? "Bathroom" : "Bathrooms"}</span>
+              </div>
+              <div class="stack listing-fact">
+                <strong>{listing.sqft.toLocaleString("en-US")}</strong>
+                <span>Square feet</span>
+              </div>
+              <div class="stack listing-fact">
+                <strong>{money(Math.round(listing.price / listing.sqft))}</strong>
+                <span>Per sq ft</span>
+              </div>
+            </div>
+
+            <div class="stack">
+              <h2 e:if={listing.headline} class="listing-headline">{listing.headline}</h2>
+              <p class="listing-description">{listing.description}</p>
+            </div>
+
+            <section e:if={openHouses.length > 0 && listing.status === "active"} class="stack">
+              <h2 class="listing-section-title">Open houses</h2>
+              <div class="stack is-sm">
+                <div e:for={oh of openHouses} class="row open-house">
+                  <div class="row open-house-date">
+                    <div class="open-house-cal">
+                      <small>{monthShort(oh.startsAt)}</small>
+                      <strong>{dayOfMonth(oh.startsAt)}</strong>
+                    </div>
+                    <div class="stack is-xs">
+                      <strong>{dayLabel(oh.startsAt)}</strong>
+                      <span class="hint">{timeLabel(oh.startsAt)} to {timeLabel(oh.endsAt)}</span>
+                    </div>
+                  </div>
+                  <button class="is-sm" onclick={() => onAttend(inquiry, oh)}>Plan to attend</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="stack">
+              <h2 class="listing-section-title">Details</h2>
+              <table class="details-table">
+                <tbody>
+                  <tr>
+                    <th scope="row">Status</th>
+                    <td>{listing.status === "sold" && listing.soldAt ? `Sold ${dateLabel(listing.soldAt)}` : listing.status === "pending" ? "Under contract" : "For sale"}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Home type</th>
+                    <td>{typeLabel(listing.propertyType)}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Bathrooms</th>
+                    <td>{bathsLabel(listing.baths)}</td>
+                  </tr>
+                  <tr e:if={listing.yearBuilt}>
+                    <th scope="row">Year built</th>
+                    <td>{listing.yearBuilt}</td>
+                  </tr>
+                  <tr e:if={listing.lotSqft}>
+                    <th scope="row">Lot</th>
+                    <td>{listing.lotSqft! >= 43560 ? `${+(listing.lotSqft! / 43560).toFixed(2)} acres` : `${listing.lotSqft!.toLocaleString("en-US")} sq ft`}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Listed</th>
+                    <td>{dateLabel(listing.listedAt)}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Neighborhood</th>
+                    <td><a href={`/?hood=${encodeURIComponent(listing.neighborhood)}`}>{listing.neighborhood}</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </article>
+
+          <aside class="listing-aside stack is-lg" id="contact">
+            <button class={["save-home is-block", fav.on && "is-active"]}
+                    aria-pressed={fav.on}
+                    onclick={() => onFavorite(fav, listing.id)}>
+              {fav.on ? "Saved to your homes" : "Save this home"}
+            </button>
+
+            <div class="card">
+              <div class="card-body stack is-lg">
+                <div class="row agent-card">
+                  <img e:if={agent.photo} class="agent-photo" src={agentPhotoUrl(agent.photo)} alt="" width="64" height="64">
+                  <div class="stack is-xs">
+                    <p class="eyebrow">Listing agent</p>
+                    <h3 class="agent-name">{agent.name}</h3>
+                    <span e:if={agent.title} class="agent-meta">{agent.title}, Keystoop Realty</span>
+                  </div>
+                </div>
+
+                <div class="stack agent-contact">
+                  <a e:if={agent.phone} href={`tel:${agent.phone}`}>{agent.phone}</a>
+                  <a href={`mailto:${agent.email}`}>{agent.email}</a>
+                </div>
+
+                <div e:if={inquiry.sentTo} class="stack is-sm inquiry-sent" role="status">
+                  <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M7.5 12.5 L10.5 15.5 L16.5 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <h3>Sent to {inquiry.sentTo.split(" ")[0]}</h3>
+                  <p class="hint">{inquiry.form.kind === "showing" ? "They'll confirm a time" : "They'll reply"} at {inquiry.form.email}, usually within a few hours.</p>
+                  <button class="is-ghost is-sm" onclick={() => onAnother(inquiry)}>Send another message</button>
+                </div>
+
+                <form e:else class="stack" onsubmit={() => onSend(inquiry)}>
+                  <div class="inquiry-tabs" role="group" aria-label="Message type">
+                    <button type="button"
+                            class={["is-sm", inquiry.form.kind === "question" && "is-active"]}
+                            aria-pressed={inquiry.form.kind === "question"}
+                            onclick={() => onKind(inquiry, "question")}>Ask a question</button>
+                    <button type="button"
+                            class={["is-sm", inquiry.form.kind === "showing" && "is-active"]}
+                            aria-pressed={inquiry.form.kind === "showing"}
+                            onclick={() => onKind(inquiry, "showing")}>Request a showing</button>
+                  </div>
+
+                  <p e:if={inquiry.error} class="error" role="alert">{inquiry.error}</p>
+
+                  <div class="field">
+                    <label for="i-name">Name</label>
+                    <input id="i-name" name="name" autocomplete="name" value={inquiry.form.name} class={[inquiry.errors.name && "is-error"]}>
+                    <p e:if={inquiry.errors.name} class="error">{inquiry.errors.name![0]}</p>
+                  </div>
+
+                  <div class="field">
+                    <label for="i-email">Email</label>
+                    <input id="i-email"
+                           name="email"
+                           type="email"
+                           autocomplete="email"
+                           autocapitalize="none"
+                           spellcheck={false}
+                           value={inquiry.form.email}
+                           class={[inquiry.errors.email && "is-error"]}>
+                    <p e:if={inquiry.errors.email} class="error">{inquiry.errors.email![0]}</p>
+                  </div>
+
+                  <div class="field">
+                    <label for="i-phone">Phone <span class="hint">(optional)</span></label>
+                    <input id="i-phone" name="phone" type="tel" autocomplete="tel" value={inquiry.form.phone}>
+                  </div>
+
+                  <div e:if={inquiry.form.kind === "showing"} class="field">
+                    <label for="i-when">When works for you?</label>
+                    <input id="i-when" value={inquiry.form.preferredTime} placeholder="Saturday morning, weekday evenings">
+                  </div>
+
+                  <div class="field">
+                    <label for="i-message">{inquiry.form.kind === "showing" ? "Anything to add?" : "Your question"}</label>
+                    <textarea id="i-message"
+                              value={inquiry.form.message}
+                              class={[inquiry.errors.message && "is-error"]}
+                              placeholder={inquiry.form.kind === "showing" ? "Who's coming, what you'd like to see" : `Ask ${agent.name.split(" ")[0]} about taxes, offers, the neighborhood`}></textarea>
+                    <p e:if={inquiry.errors.message} class="error">{inquiry.errors.message![0]}</p>
+                  </div>
+
+                  <button type="submit" class="is-primary is-block" disabled={inquiry.sending}>
+                    {inquiry.sending ? "Sending…" : inquiry.form.kind === "showing" ? "Request a showing" : "Send question"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </Layout>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+.auth-main {
+  padding-block: var(--space-12) var(--space-8);
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-10);
+  align-items: start;
+}
+
+.auth-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.demo-agents .card-body {
+  gap: var(--space-3);
+}
+
+.demo-agent {
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+}
+
+.demo-agent code {
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 48rem) {
+  .auth-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

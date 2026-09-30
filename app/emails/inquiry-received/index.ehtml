@@ -1,0 +1,59 @@
+import "./style.css";
+import { money } from "#app/shared/services/catalog";
+
+export interface InquiryDetails {
+  kind: "question" | "showing";
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+  preferredTime: string;
+  listingId: string;
+  listingAddress: string;
+  listingPrice: number;
+  agentName: string;
+}
+
+/**
+ * Sent to the listing agent when a buyer asks a question or requests a
+ * showing.
+ *
+ * @email
+ */
+<html (inquiry: InquiryDetails)>
+  <body class="email inquiry-received">
+    <div class="email-wrap">
+      <p><span class="kind">{inquiry.kind === "showing" ? "Showing request" : "Question"}</span></p>
+      <h1>{inquiry.name} wrote about {inquiry.listingAddress}</h1>
+      <p>Hi {inquiry.agentName.split(" ")[0]}, a buyer reached out about your listing at {money(inquiry.listingPrice)}. Reply to this email to answer them directly.</p>
+
+      <table class="details">
+        <tr>
+          <td class="label">From</td>
+          <td>{inquiry.name}</td>
+        </tr>
+        <tr>
+          <td class="label">Email</td>
+          <td><a href={`mailto:${inquiry.email}`}>{inquiry.email}</a></td>
+        </tr>
+        <tr e:if={inquiry.phone}>
+          <td class="label">Phone</td>
+          <td>{inquiry.phone}</td>
+        </tr>
+        <tr e:if={inquiry.preferredTime}>
+          <td class="label">Preferred time</td>
+          <td>{inquiry.preferredTime}</td>
+        </tr>
+      </table>
+
+      <p e:if={inquiry.message} class="message">{inquiry.message}</p>
+
+      <p><a class="cta" href="/agent/inquiries">Open your inbox</a></p>
+      <p><a href={`/listings/${inquiry.listingId}`}>View the listing</a></p>
+
+      <div class="email-footer">
+        <p>Keystoop Realty · 118 Market Square, Old Town</p>
+      </div>
+    </div>
+  </body>
+</html>
