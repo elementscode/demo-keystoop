@@ -1,4 +1,4 @@
-![Keystoop, a real estate listings app built with Elements: search results filtered by price and beds, with home photos, prices, beds and baths, open house times and saved hearts.](POSTER_URL)
+![Keystoop, a real estate listings app built with Elements: search results filtered by price and beds, with home photos, prices, beds and baths, open house times and saved hearts.](https://elements.dev/demos/01a0f42e-a3a9-75b9-a8af-ca4b01c13918/poster?v=e678ef09f626)
 
 # Keystoop
 
@@ -6,7 +6,7 @@
 
 Search homes by price, beds, baths, type and neighborhood, request showings, save homes and searches with email alerts, and give agents a listings desk and inbox.
 
-**Demo:** [Keystoop](DEMO_URL)
+**Demo:** [Keystoop](https://elements.dev/demos/01a0f42e-a3a9-75b9-a8af-ca4b01c13918)
 
 ## Agent specs
 
