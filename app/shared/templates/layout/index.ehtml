@@ -1,0 +1,43 @@
+import "./style.css";
+import { session } from "@elements/app";
+import { signout } from "#app/shared/services/auth";
+
+<Layout (active: string = "")>
+  <div class="app">
+    <header class="site-header">
+      <div class="page-shell row site-header-inner">
+        <a href="/" class="site-brand row" aria-label="Keystoop home">
+          <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" focusable="false">
+            <path d="M4 12 L13 4 L22 12 V22 H4 Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M9 22 V19 H17 V22 M11 19 V16 H15 V19" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+          keystoop
+        </a>
+
+        <nav class="row site-nav" aria-label="Main">
+          <a href="/" class={[active === "search" && "is-active"]}>Buy</a>
+          <a e:if={session.get("role") === "agent"}
+             href="/agent"
+             class={[active === "agent" && "is-active"]}>Agent desk</a>
+          <a e:if={session.isLoggedIn() && session.get("role") !== "agent"}
+             href="/saved"
+             class={[active === "saved" && "is-active"]}>Saved</a>
+          <span e:if={session.isLoggedIn()} class="site-user">{session.get("userName")}</span>
+          <button e:if={session.isLoggedIn()} class="is-ghost is-sm" onclick={() => signout()}>Sign out</button>
+          <a e:else href="/signin" class={["button is-sm", active === "signin" && "is-active"]}>Sign in</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <slot/>
+    </main>
+
+    <footer class="site-footer">
+      <div class="page-shell cluster site-footer-inner">
+        <span>Keystoop Realty · 118 Market Square, Old Town · (555) 201-4400</span>
+        <span>Listings update live as our agents post them.</span>
+      </div>
+    </footer>
+  </div>
+</Layout>

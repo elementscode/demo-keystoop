@@ -1,0 +1,51 @@
+import "./style.css";
+import { photoUrl } from "#app/shared/services/assets";
+import { money, bedsLabel, bathsLabel, sqftLabel } from "#app/shared/services/catalog";
+
+export interface MatchedListing {
+  id: string;
+  address: string;
+  neighborhood: string;
+  price: number;
+  beds: number;
+  baths: number;
+  sqft: number;
+  headline: string;
+  coverId: string | null;
+  coverAsset: string | null;
+  coverHash: string | null;
+}
+
+/**
+ * Sent when a newly listed home matches one of a buyer's saved searches.
+ *
+ * @email
+ */
+<html (listing: MatchedListing, userName: string, searchName: string)>
+  <body class="email new-matches">
+    <div class="email-wrap">
+      <p>Hi {userName.split(" ")[0]},</p>
+      <p>A home that matches your saved search <strong>{searchName}</strong> was just listed.</p>
+
+      <a href={`/listings/${listing.id}`}>
+        <img e:if={listing.coverId}
+             class="photo"
+             src={photoUrl({ id: listing.coverId!, asset: listing.coverAsset, hash: listing.coverHash ?? "" })}
+             alt={listing.address}
+             width="560">
+      </a>
+
+      <p class="price">{money(listing.price)}</p>
+      <p class="facts">{bedsLabel(listing.beds)} · {bathsLabel(listing.baths)} · {sqftLabel(listing.sqft)}</p>
+      <p class="address">{listing.address}, {listing.neighborhood}</p>
+      <p e:if={listing.headline}>{listing.headline}</p>
+
+      <p><a class="cta" href={`/listings/${listing.id}`}>See the listing</a></p>
+
+      <div class="email-footer">
+        <p>Keystoop Realty · 118 Market Square, Old Town</p>
+        <p>You get these because you saved a search. <a href="/saved">Manage saved searches</a></p>
+      </div>
+    </div>
+  </body>
+</html>

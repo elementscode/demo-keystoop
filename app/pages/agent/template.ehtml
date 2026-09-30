@@ -1,0 +1,135 @@
+import "./style.css";
+import { LiveView } from "@elements/app";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { Layout } from "#app/shared/templates/layout";
+import { DeskNav } from "#app/shared/templates/desk-nav";
+import { photoUrl } from "#app/shared/services/assets";
+import { AgentListing, setListingStatus } from "#app/shared/services/agent";
+import { Inquiry } from "#app/shared/services/inquiries";
+import { STATUSES, ListingStatus, money, dateLabel } from "#app/shared/services/catalog";
+
+interface Row {
+  id: string;
+  listing: AgentListing;
+  saved: ListingStatus;
+  flash: string;
+}
+
+function toRows(listings: AgentListing[]): Row[] {
+  return listings.map((listing) => ({ id: listing.id, listing, saved: listing.status, flash: "" }));
+}
+
+/** The select has already written the new status; this persists it, or puts the old one back. */
+function onStatus(row: Row) {
+  let status = row.listing.status;
+
+  row.flash = "";
+
+  try {
+    setListingStatus(row.listing.id, status);
+    row.saved = status;
+    row.flash = "Updated";
+    setTimeout(() => row.flash = "", 2000);
+  } catch (err: any) {
+    row.listing.status = row.saved;
+    row.flash = err.message;
+  }
+}
+
+function count(rows: Row[], status: ListingStatus): number {
+  return rows.filter((r) => r.listing.status === status).length;
+}
+
+<html lang="en" class="page-agent" (
+  agentName: string,
+  initial: AgentListing[],
+  inbox: LiveView<Inquiry>,
+  private rows: Row[] = toRows(initial),
+)>
+  <head>
+    <title>Agent desk · Keystoop Realty</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <Layout active="agent">
+      <div class="page-shell desk-main stack is-xl">
+        <div class="row desk-head">
+          <div class="stack is-xs">
+            <p class="eyebrow">Agent desk</p>
+            <h1 class="desk-title">Welcome back, {agentName.split(" ")[0]}</h1>
+          </div>
+          <a class="button is-primary" href="/agent/listings/new">New listing</a>
+        </div>
+
+        <DeskNav active="listings" unread={inbox.filter((i) => !i.readAt).length} />
+
+        <div class="desk-stats">
+          <div class="stack desk-stat">
+            <strong>{count(rows, "active")}</strong>
+            <span>Active</span>
+          </div>
+          <div class="stack desk-stat">
+            <strong>{count(rows, "pending")}</strong>
+            <span>Pending</span>
+          </div>
+          <div class="stack desk-stat">
+            <strong>{count(rows, "sold")}</strong>
+            <span>Sold</span>
+          </div>
+          <a class="stack desk-stat" href="/agent/inquiries">
+            <strong>{inbox.filter((i) => !i.readAt).length}</strong>
+            <span>Unread inquiries</span>
+          </a>
+        </div>
+
+        <div class="desk-table-wrap">
+          <table class="desk-table">
+            <thead>
+              <tr>
+                <th>Home</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Inquiries</th>
+                <th>Listed</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr e:for={row of rows}>
+                <td>
+                  <a class="row desk-home" href={`/listings/${row.listing.id}`}>
+                    <img e:if={row.listing.coverId}
+                         src={photoUrl({ id: row.listing.coverId!, asset: row.listing.coverAsset, hash: row.listing.coverHash ?? "" })}
+                         alt=""
+                         width="72"
+                         height="48"
+                         loading="lazy">
+                    <span>
+                      <strong>{row.listing.address}</strong>
+                      <small>{row.listing.neighborhood}</small>
+                    </span>
+                  </a>
+                </td>
+                <td class="desk-price">{money(row.listing.price)}</td>
+                <td>
+                  <div class="row is-sm">
+                    <select class={["is-sm desk-status", `is-${row.listing.status}-status`]}
+                            aria-label={`Status of ${row.listing.address}`}
+                            value={row.listing.status}
+                            onchange={() => onStatus(row)}>
+                      <option e:for={s of STATUSES} value={s.value}>{s.label}</option>
+                    </select>
+                    <span e:if={row.flash} class="desk-flash" role="status">{row.flash}</span>
+                  </div>
+                </td>
+                <td>{row.listing.inquiryCount}</td>
+                <td>{dateLabel(row.listing.listedAt)}</td>
+                <td><a class="button is-sm is-ghost" href={`/agent/listings/${row.listing.id}`}>Edit</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </Layout>
+  </body>
+</html>

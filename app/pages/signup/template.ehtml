@@ -1,0 +1,80 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { Layout } from "#app/shared/templates/layout";
+import { signup, MIN_PASSWORD } from "#app/shared/services/auth";
+
+interface SignupForm {
+  name: string;
+  email: string;
+  password: string;
+  error: string;
+  busy: boolean;
+}
+
+function onSubmit(form: SignupForm, next: string) {
+  form.busy = true;
+
+  try {
+    signup(form.name, form.email, form.password, next);
+  } catch (err: any) {
+    form.error = err.message;
+    form.busy = false;
+  }
+}
+
+<html lang="en" class="page-signup" (
+  next: string,
+  private form: SignupForm = { name: "", email: "", password: "", error: "", busy: false },
+)>
+  <head>
+    <title>Create an account · Keystoop Realty</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <Layout active="signin">
+      <div class="page-shell is-form auth-main">
+        <form class="stack is-lg" onsubmit={() => onSubmit(form, next)}>
+          <div class="stack is-sm">
+            <h1 class="auth-title">Create an account</h1>
+            <p class="hint">Save homes you like and get an email when a new listing matches your search.</p>
+          </div>
+
+          <p e:if={form.error} class="error" role="alert">{form.error}</p>
+
+          <div class="field">
+            <label for="name">Name</label>
+            <input id="name" name="name" value={form.name} autocomplete="name" required>
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email"
+                   name="email"
+                   type="email"
+                   value={form.email}
+                   autocomplete="email"
+                   autocapitalize="none"
+                   spellcheck={false}
+                   required>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password"
+                   name="password"
+                   type="password"
+                   value={form.password}
+                   autocomplete="new-password"
+                   minlength={MIN_PASSWORD}
+                   required>
+            <p class="hint">At least {MIN_PASSWORD} characters.</p>
+          </div>
+
+          <button type="submit" class="is-primary is-block" disabled={form.busy}>{form.busy ? "Creating…" : "Create account"}</button>
+
+          <p class="hint">Have an account? <a href={next ? `/signin?next=${encodeURIComponent(next)}` : "/signin"}>Sign in</a></p>
+        </form>
+      </div>
+    </Layout>
+  </body>
+</html>

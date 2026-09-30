@@ -1,0 +1,93 @@
+import "./style.css";
+import { LiveView } from "@elements/app";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { Layout } from "#app/shared/templates/layout";
+import { DeskNav } from "#app/shared/templates/desk-nav";
+import { Inquiry, markInquiryRead } from "#app/shared/services/inquiries";
+import { timeAgo, dayLabel, timeLabel } from "#app/shared/services/catalog";
+
+type Show = "all" | "unread" | "showing";
+
+interface InboxState {
+  show: Show;
+}
+
+function visible(inbox: LiveView<Inquiry>, show: Show): Inquiry[] {
+  return inbox
+    .filter((i) => (show === "unread" ? !i.readAt : show === "showing" ? i.kind === "showing" : true))
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+}
+
+function onToggleRead(i: Inquiry) {
+  markInquiryRead(i.id, !i.readAt);
+}
+
+function replyLink(i: Inquiry): string {
+  let subject = `Re: ${i.listingAddress}`;
+
+  return `mailto:${i.email}?subject=${encodeURIComponent(subject)}`;
+}
+
+<html lang="en" class="page-inquiries" (
+  inbox: LiveView<Inquiry>,
+  private state: InboxState = { show: "all" as Show },
+)>
+  <head>
+    <title>Inquiries · Keystoop Realty</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <Layout active="agent">
+      <div class="page-shell desk-main stack is-xl">
+        <div class="row desk-head">
+          <div class="stack is-xs">
+            <p class="eyebrow">Agent desk</p>
+            <h1 class="desk-title">Inquiries</h1>
+          </div>
+          <span class="pill is-success">
+            <span class="pill-dot"></span>
+            New messages arrive live
+          </span>
+        </div>
+
+        <DeskNav active="inquiries" unread={inbox.filter((i) => !i.readAt).length} />
+
+        <div class="row inbox-filters" role="group" aria-label="Filter">
+          <button class={["is-sm is-ghost", state.show === "all" && "is-active"]} aria-pressed={state.show === "all"} onclick={() => state.show = "all"}>All {inbox.length}</button>
+          <button class={["is-sm is-ghost", state.show === "unread" && "is-active"]} aria-pressed={state.show === "unread"} onclick={() => state.show = "unread"}>Unread {inbox.filter((i) => !i.readAt).length}</button>
+          <button class={["is-sm is-ghost", state.show === "showing" && "is-active"]} aria-pressed={state.show === "showing"} onclick={() => state.show = "showing"}>Showing requests</button>
+        </div>
+
+        <div e:if={visible(inbox, state.show).length > 0} class="inbox-list">
+          <article e:for={i of visible(inbox, state.show)} class={["inbox-item", !i.readAt && "is-unread"]}>
+            <span class="inbox-dot" aria-hidden="true"></span>
+
+            <div class="stack is-sm">
+              <div class="cluster inbox-from">
+                <strong>{i.name}</strong>
+                <span e:if={i.kind === "showing"} class="pill is-accent">Showing request</span>
+                <span e:else class="pill">Question</span>
+              </div>
+              <div class="inbox-meta">
+                About <a href={`/listings/${i.listingId}`}>{i.listingAddress}</a> · {i.email}{i.phone ? ` · ${i.phone}` : ""}
+              </div>
+              <p e:if={i.preferredTime} class="inbox-meta"><strong>Preferred time:</strong> {i.preferredTime}</p>
+              <p e:if={i.message} class="inbox-message">{i.message}</p>
+              <div class="row inbox-actions">
+                <a class="button is-sm is-primary" href={replyLink(i)} onclick={() => !i.readAt && onToggleRead(i)}>Reply</a>
+                <button class="is-sm" onclick={() => onToggleRead(i)}>{i.readAt ? "Mark unread" : "Mark read"}</button>
+              </div>
+            </div>
+
+            <time class="inbox-when" datetime={new Date(i.createdAt).toISOString()} title={`${dayLabel(i.createdAt)}, ${timeLabel(i.createdAt)}`}>{timeAgo(i.createdAt)}</time>
+          </article>
+        </div>
+
+        <div e:else class="inbox-list inbox-empty stack is-sm">
+          <h3>{state.show === "all" ? "No inquiries yet" : "Nothing here"}</h3>
+          <p class="hint">Questions and showing requests from your listing pages land here the moment they are sent.</p>
+        </div>
+      </div>
+    </Layout>
+  </body>
+</html>

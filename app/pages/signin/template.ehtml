@@ -1,0 +1,103 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { Layout } from "#app/shared/templates/layout";
+import { signin, DEMO_AGENTS, DEMO_BUYER, DEMO_PASSWORD } from "#app/shared/services/auth";
+
+interface SigninForm {
+  email: string;
+  password: string;
+  error: string;
+  busy: boolean;
+}
+
+function onSubmit(form: SigninForm, next: string) {
+  form.busy = true;
+
+  try {
+    signin(form.email, form.password, next);
+  } catch (err: any) {
+    form.error = err.message;
+    form.busy = false;
+  }
+}
+
+function onUseAgent(form: SigninForm, email: string, next: string) {
+  form.email = email;
+  form.password = DEMO_PASSWORD;
+  onSubmit(form, next);
+}
+
+<html lang="en" class="page-signin" (
+  next: string,
+  private form: SigninForm = { email: "", password: "", error: "", busy: false },
+)>
+  <head>
+    <title>Sign in · Keystoop Realty</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <Layout active="signin">
+      <div class="page-shell auth-main">
+        <div class="auth-grid">
+          <form class="stack is-lg" onsubmit={() => onSubmit(form, next)}>
+            <div class="stack is-sm">
+              <h1 class="auth-title">Sign in</h1>
+              <p class="hint">Save homes and searches, and hear first when a match is listed.</p>
+            </div>
+
+            <p e:if={form.error} class="error" role="alert">{form.error}</p>
+
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email"
+                     name="email"
+                     type="email"
+                     value={form.email}
+                     autocomplete="email"
+                     autocapitalize="none"
+                     spellcheck={false}
+                     required>
+            </div>
+
+            <div class="field">
+              <label for="password">Password</label>
+              <input id="password"
+                     name="password"
+                     type="password"
+                     value={form.password}
+                     autocomplete="current-password"
+                     required>
+            </div>
+
+            <button type="submit" class="is-primary is-block" disabled={form.busy}>{form.busy ? "Signing in…" : "Sign in"}</button>
+
+            <p class="hint">New here? <a href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>Create an account</a></p>
+          </form>
+
+          <div class="card demo-agents">
+            <div class="card-head">
+              <h2>Demo logins</h2>
+            </div>
+            <div class="card-body stack">
+              <p class="hint">Three agents and a buyer are set up for this demo. Each password is <code>{DEMO_PASSWORD}</code>.</p>
+              <div e:for={a of DEMO_AGENTS} class="row demo-agent">
+                <div class="stack is-xs">
+                  <strong>{a.name}</strong>
+                  <code>{a.email}</code>
+                </div>
+                <button type="button" class="is-sm" disabled={form.busy} onclick={() => onUseAgent(form, a.email, next)}>Sign in</button>
+              </div>
+              <div class="row demo-agent">
+                <div class="stack is-xs">
+                  <strong>{DEMO_BUYER.name} <span class="hint">· buyer</span></strong>
+                  <code>{DEMO_BUYER.email}</code>
+                </div>
+                <button type="button" class="is-sm" disabled={form.busy} onclick={() => onUseAgent(form, DEMO_BUYER.email, next)}>Sign in</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  </body>
+</html>

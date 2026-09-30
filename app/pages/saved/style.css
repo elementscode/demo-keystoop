@@ -1,0 +1,53 @@
+@import "#app/shared/styles/page.css";
+
+.saved-main {
+  padding-block: var(--space-8) var(--space-4);
+}
+
+.saved-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.saved-section-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+}
+
+.saved-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--space-6);
+}
+
+.saved-search {
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+}
+
+.saved-search-count {
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
+}
+
+.saved-empty {
+  padding: var(--space-10) var(--space-6);
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius-xl);
+  text-align: center;
+}
+
+@media (max-width: 40rem) {
+  .saved-search {
+    flex-wrap: wrap;
+  }
+}
