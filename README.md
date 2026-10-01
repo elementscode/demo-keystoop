@@ -36,9 +36,13 @@ Keystoop needed search results that change as agents work, inquiries that reach 
 - **Data from SQL files.** Two migrations define the site and seed three agents, thirty listings across eight neighborhoods with photo galleries and open houses, inquiries in each inbox, and a buyer with two saved searches.
 - **Sessions and roles.** Agent pages and rpcs share one guard, `requireAgent` in `app/shared/services/auth.ts`.
 
-### What the agent got from the tooling
+### What the project server gave the agent
 
-The agent ran 30 builds in 34 minutes. By the build's own timer, the median build finished in 42 milliseconds, so it checked its work after each edit and kept going. The build caught errors in four of them, among them a malformed `e:for` loop variable and a possibly undefined value, each with a message that named the fix. The agent read the manual for each part as it reached it, 51 topics from `livetable/windows` and `recipes/file-upload` to `style/components/form`, then wrote 68 tests and checked its pages in a real browser, including at phone width.
+The project server runs alongside the agent and answers as soon as a file is saved, so every question came back right away: does it type-check, does it build, did the migration apply, do the tests pass. The agent asked 30 times in 34 minutes and kept moving after each answer. Four times the build caught a mistake, among them a malformed `e:for` loop variable and a possibly undefined value, each with a message that named the fix. It read the manual for each part as it reached it, 51 pages from `livetable/windows` to `recipes/file-upload`.
+
+### What shipped
+
+The app type-checks with zero errors and all 68 tests pass. Every page was checked on desktop and phone before publishing. The repo was installed fresh from GitHub and run before the demo went live.
 
 Start in `app/shared/services/agent.ts`.
 
