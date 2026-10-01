@@ -29,12 +29,12 @@ Keystoop needed search results that change as agents work, inquiries that reach 
 
 ### What Elements gave the app
 
-- **Live search.** `listings` is a LiveTable in `app/shared/services/listings.ts`, with a trigger in the schema migration that broadcasts each change. A new listing or a move from active to pending shows up in every open search page at once, and the price, beds, baths, type and neighborhood filters run in the page over that live view.
-- **A live inbox.** `inquiries` in `app/shared/services/inquiries.ts` is a LiveTable partitioned by agent, so a question sent from a listing page lands in that agent's open inbox the moment it is saved.
-- **Server calls as function calls.** Pages call `@rpc` functions such as `sendInquiry`, `toggleFavorite`, `saveSearch`, `setListingStatus` and `addPhotos` straight from the template. `addPhotos` takes the uploaded files as an argument, and `app/routes/photos.ts` serves them at hashed urls that browsers cache for a year.
-- **Background email.** `sendInquiry` queues `SendInquiryJob` in the same transaction as the inquiry. When a listing goes active, `NotifySavedSearchesJob` emails each matching saved search, and `claimMatches` in `app/shared/services/alerts.ts` records the match so each search hears about each listing once.
-- **Data from SQL files.** Two migrations define the site and seed three agents, thirty listings across eight neighborhoods with photo galleries and open houses, inquiries in each inbox, and a buyer with two saved searches.
-- **Sessions and roles.** Agent pages and rpcs share one guard, `requireAgent` in `app/shared/services/auth.ts`.
+- **Live search.** Listings are a LiveTable, so a new listing or a move from active to pending shows up in every open search page at once, and the price, beds, baths, type and neighborhood filters run in the page over that live list.
+- **A live inbox.** Inquiries are a LiveTable split by agent, so a question or showing request sent from a listing page lands in that agent's open inbox the moment it is sent.
+- **Server calls as function calls.** Inquiries, favorites, saved searches, listing status and photo uploads all go to the server through `@rpc` functions called straight from the page. Uploaded photos are served at addresses browsers keep for a year.
+- **Jobs and email.** Each inquiry queues an email to the agent in the same transaction. When a listing goes active, a job emails everyone whose saved search it matches, and each search hears about each listing once.
+- **Data from SQL files.** Migrations define the site and seed three agents, thirty listings across eight neighborhoods with photo galleries and open houses, inquiries in each inbox, and a buyer with two saved searches.
+- **Sessions and roles.** Agent pages and server calls share one guard on the agent role.
 
 ### What the project server gave the agent
 
@@ -43,8 +43,6 @@ The project server runs alongside the agent and answers as soon as a file is sav
 ### What shipped
 
 The app type-checks with zero errors and all 68 tests pass. Every page works on desktop and phone.
-
-Start in `app/shared/services/agent.ts`.
 
 ## Seed data and demo accounts
 
