@@ -38,7 +38,7 @@ Keystoop needed search results that change as agents work, inquiries that reach 
 
 ### What the project server gave the agent
 
-The project server runs alongside the agent and answers as soon as a file is saved, so every question came back right away: does it type-check, does it build, did the migration apply, do the tests pass. The agent asked 30 times in 34 minutes and kept moving after each answer. Four times the build caught a mistake, among them a malformed `e:for` loop variable and a possibly undefined value, each with a message that named the fix. It read the manual for each part as it reached it, 51 pages from `livetable/windows` to `recipes/file-upload`.
+The project server runs alongside the agent and answers as soon as a file is saved: it type-checks the templates, TypeScript and SQL, applies migrations and reruns the tests, so every question came back right away and the agent kept building.
 
 ### What shipped
 
