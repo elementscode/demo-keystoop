@@ -10,9 +10,6 @@ Search homes by price, beds, baths, type and neighborhood, request showings, sav
 
 ## Agent specs
 
-What one run of the prompt below took, from an empty Elements project to this
-app.
-
 - **Agent:** Claude Code, Opus 5.5 Medium
 - **Time:** 34 min
 - **Cost:** $9.85 at API rates, September 2026
@@ -72,29 +69,7 @@ Listing photos are public domain (CC0 and Public Domain Mark) images from
 Openverse, and the agent portraits are drawn SVGs. The brokerage, agents and
 addresses are made up.
 
-## The prompt
-
-```text
-Build a real estate listings site named keystoop for a local brokerage.
-
-PUBLIC
-- Search homes for sale by price range, beds, baths, property type and
-  neighborhood, sorted by newest or price.
-- Listing page: photo gallery, price, details, description, open house times,
-  and the listing agent.
-- Send an inquiry or request a showing; the agent gets an email.
-- Save favorites and saved searches (with an account); get an email when new
-  listings match.
-
-AGENT (accounts)
-- Create and edit listings with photos. Status: active, pending, sold.
-- Inquiries inbox.
-
-Seed three agents and thirty listings with photos across neighborhoods and
-statuses. Show the agent logins on the sign-in page.
-
-New listings and status changes appear in search results in real time.
-```
+**Demo:** [Keystoop](https://elements.dev/demos/01a0f42e-a3a9-75b9-a8af-ca4b01c13918)
 
 ## License
 
