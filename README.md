@@ -1,30 +1,16 @@
-![Keystoop, a real estate listings app built with Elements: search results filtered by price and beds, with home photos, prices, beds and baths, open house times and saved hearts.](https://elements.dev/demos/01a0f42e-a3a9-75b9-a8af-ca4b01c13918/poster?v=e678ef09f626)
+![Home listings with saved search alerts, built by Claude Code on Elements: search results filtered by price and beds, with home photos, prices, beds and baths, open house times and saved hearts.](https://elements.dev/demos/01a0f42e-a3a9-75b9-a8af-ca4b01c13918/poster?v=e678ef09f626)
 
-# Keystoop
+# Home listings with saved search alerts, built by Claude Code on Elements
 
-> A demo app built with [Elements](https://elements.dev).
+> Keystoop is a full-stack app built with Claude Code on Elements.
 
 Search homes by price, beds, baths, type and neighborhood, request showings, save homes and searches with email alerts, and give agents a listings desk and inbox.
 
-**Demo:** [Keystoop](https://elements.dev/demos/01a0f42e-a3a9-75b9-a8af-ca4b01c13918)
-
-## Agent specs
-
-- **Agent:** Claude Code, Opus 5.5 Medium
-- **Time:** 34 min
-- **Cost:** $9.85 at API rates, September 2026
-
-## Get started
-
-```bash
-elements create keystoop -scaffold=elementscode/demo-keystoop
-```
+[Run this app on your machine](https://elements.dev/demos/01a0f42e-a3a9-75b9-a8af-ca4b01c13918). Use this demo as inspiration, or as the starting point for your own app. Your agent creates a new app with this one as the scaffold, and you prompt it to add whatever features you want.
 
 ## How it's built
 
 Keystoop needed search results that change as agents work, inquiries that reach an agent's inbox and email, saved searches that send alerts, and a listings desk with photo uploads. Each of those is a part of Elements, so the agent spent its 34 minutes on the brokerage site itself.
-
-### What Elements gave the app
 
 - **Live search.** Listings are a LiveTable, so a new listing or a move from active to pending shows up in every open search page at once, and the price, beds, baths, type and neighborhood filters run in the page over that live list.
 
@@ -38,39 +24,6 @@ Keystoop needed search results that change as agents work, inquiries that reach 
 
 - **Sessions and roles.** Agent pages and server calls share one guard on the agent role.
 
-### What the project server gave the agent
+## Why Elements
 
-The project server runs alongside the agent and answers as soon as a file is saved: it type-checks the templates, TypeScript and SQL, applies migrations and reruns the tests, so every question came back right away and the agent kept building.
-
-### What shipped
-
-The app type-checks with zero errors and all 68 tests pass. Every page works on desktop and phone.
-
-## Seed data and demo accounts
-
-The seed creates three agents and thirty listings across eight neighborhoods
-(22 active, 5 pending, 3 sold), with photo galleries, open houses and a few
-inquiries in each agent's inbox. It also creates a buyer with saved homes and
-two saved searches. Every account's password is `keystoop`, and the sign-in
-page lists them.
-
-| Email                  | Role                     |
-| ---------------------- | ------------------------ |
-| nora@keystoop.test     | agent (Principal Broker) |
-| marcus@keystoop.test   | agent (Associate Broker) |
-| maya@keystoop.test     | agent (Sales Agent)      |
-| sam.rivera@example.com | buyer                    |
-
-In development, inquiry and saved-search emails are written to the server log.
-To send them, set `EMAIL_LIVE` and the SMTP settings in
-`config/env/production.env`.
-
-Listing photos are public domain (CC0 and Public Domain Mark) images from
-Openverse, and the agent portraits are drawn SVGs. The brokerage, agents and
-addresses are made up.
-
-**Demo:** [Keystoop](https://elements.dev/demos/01a0f42e-a3a9-75b9-a8af-ca4b01c13918)
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+Elements is an integrated full-stack app framework and a project server. The project server checks the agent's work as it builds: it type-checks the server and browser code, analyzes the program, applies migrations and runs the tests, then reports the results to the agent. A security mistake, such as calling a server-only function from the browser, is a compile error. The agent reads the report and fixes its own mistakes before it tells you a feature is done. The same checks run on every feature you ask for next.
